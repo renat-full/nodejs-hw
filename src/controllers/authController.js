@@ -3,6 +3,11 @@ import bcrypt from 'bcrypt';
 import { User } from '../models/user.js';
 import { Session } from '../models/session.js';
 import { createSession, setSessionCookies } from '../services/auth.js';
+import jwt from 'jsonwebtoken';
+import { sendEmail } from '../utils/sendMail.js';
+import fs from 'fs';
+import handlebars from 'handlebars';
+import dotenv from 'dotenv';
 
 export const registerUser = async (req, res, next) => {
   try {
@@ -78,6 +83,65 @@ export const logoutUser = async (req, res, next) => {
     res.clearCookie('sessionId');
 
     res.sendStatus(204);
+  } catch (err) {
+    next(err);
+  }
+};
+
+dotenv.config();
+
+export const requestResetEmail = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user)
+      return res
+        .status(200)
+        .json({ message: 'Password reset email sent successfully' });
+
+    const token = jwt.sign(
+      { sub: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' },
+    );
+
+    const template = fs.readFileSync(
+      'src/templates/reset-password-email.html',
+      'utf-8',
+    );
+    const compiledTemplate = handlebars.compile(template);
+    const html = compiledTemplate({
+      username: user.username,
+      link: `${process.env.FRONTEND_DOMAIN}/reset-password?token=${token}`,
+    });
+
+    await sendEmail({ to: user.email, subject: 'Password Reset', html });
+
+    res.status(200).json({ message: 'Password reset email sent successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      throw createHttpError(401, 'Invalid or expired token');
+    }
+
+    const user = await User.findOne({ _id: payload.sub, email: payload.email });
+    if (!user) throw createHttpError(404, 'User not found');
+
+    user.password = password;
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successfully' });
   } catch (err) {
     next(err);
   }
