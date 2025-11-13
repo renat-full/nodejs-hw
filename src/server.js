@@ -9,10 +9,10 @@ import { errors } from 'celebrate';
 
 dotenv.config();
 
-const app = express(); // <-- app создаем здесь
+const app = express();
 
 app.use(express.json());
-app.use(cookieParser()); // <-- теперь можно использовать
+app.use(cookieParser());
 
 app.use('/notes', notesRouter);
 app.use('/auth', authRouter);
