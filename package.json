@@ -17,10 +17,13 @@
     "express": "^5.1.0",
     "http-errors": "^2.0.0",
     "mongoose": "^8.19.3",
-    "pino-http": "^11.0.0"
+    "pino-http": "^11.0.0",
+    "pino-pretty": "^13.1.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "eslint": "^9.39.1",
+    "globals": "^16.5.0",
     "nodemon": "^3.1.11",
     "prettier": "^3.6.2"
   }
