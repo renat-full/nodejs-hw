@@ -16,9 +16,7 @@ export const registerUser = async (req, res, next) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) throw createHttpError(400, 'Email in use');
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await User.create({ email, password: hashedPassword });
+    const user = await User.create({ email, password });
 
     const session = await createSession(user._id);
     setSessionCookies(res, session);
@@ -58,11 +56,11 @@ export const refreshUserSession = async (req, res, next) => {
     if (!session) throw createHttpError(401, 'Session not found');
 
     if (session.refreshTokenValidUntil < new Date()) {
-      await session.delete();
+      await session.deleteOne();
       throw createHttpError(401, 'Session token expired');
     }
 
-    await session.delete();
+    await session.deleteOne();
 
     const newSession = await createSession(session.userId);
     setSessionCookies(res, newSession);
@@ -91,8 +89,11 @@ export const logoutUser = async (req, res, next) => {
 dotenv.config();
 
 export const requestResetEmail = async (req, res, next) => {
+  console.log('requestResetEmail called');
   try {
     const { email } = req.body;
+    console.log('Request email:', email);
+
     const user = await User.findOne({ email });
 
     if (!user)
