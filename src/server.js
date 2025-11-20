@@ -1,23 +1,26 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import { connectMongoDB } from './db/connectMongoDB.js';
 import notesRouter from './routes/notesRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { errors } from 'celebrate';
+import { logger } from './middleware/logger.js';
+import { notFoundHandler } from './middleware/notFoundHandler.js';
 
 dotenv.config();
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
+app.use(logger);
 
-app.use('/notes', notesRouter);
+app.use(notesRouter);
 
 app.use(errors());
 
-app.use((req, res) => {
-  res.status(404).json({ message: 'Not found' });
-});
+app.use(notFoundHandler);
 
 app.use(errorHandler);
 
