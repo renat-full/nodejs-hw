@@ -1,2 +1,2 @@
 import pino from 'pino-http';
-export const logger = pino();
+export default pino();
