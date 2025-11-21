@@ -1,6 +1,6 @@
 import { HttpError } from 'http-errors';
 
-export function errorHandler(err, req, res) {
+export function errorHandler(err, req, res, next) {
   let status = 500;
   let message = 'Internal Server Error';
 
