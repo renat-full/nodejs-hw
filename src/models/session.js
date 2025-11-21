@@ -10,7 +10,7 @@ const sessionSchema = new mongoose.Schema(
     accessToken: { type: String, required: true, index: true },
     refreshToken: { type: String, required: true },
     accessTokenValidUntil: { type: Date, required: true, index: true },
-    refreshTokenValidUntil: { type: Date, required: true, index: true },
+    refreshTokenValidUntil: { type: Date, required: true }, // убрали index: true
   },
   { timestamps: true },
 );
