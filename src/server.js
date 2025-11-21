@@ -7,8 +7,8 @@ import notesRouter from './routes/notesRoutes.js';
 import authRouter from './routes/authRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { errors } from 'celebrate';
-import logger from './middleware/logger.js';
-import notFoundHandler from './middleware/notFoundHandler.js';
+import { logger } from './middleware/logger.js';
+import { notFoundHandler } from './middleware/notFoundHandler.js';
 
 dotenv.config();
 
@@ -22,10 +22,8 @@ app.use(logger);
 app.use(notesRouter);
 app.use(authRouter);
 
-app.use(errors());
-
 app.use(notFoundHandler);
-
+app.use(errors());
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3030;
