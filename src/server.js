@@ -18,10 +18,8 @@ app.use(logger);
 
 app.use(notesRouter);
 
-app.use(errors());
-
 app.use(notFoundHandler);
-
+app.use(errors());
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;

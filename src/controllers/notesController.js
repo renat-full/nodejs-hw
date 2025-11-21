@@ -5,15 +5,21 @@ export const getAllNotes = async (req, res, next) => {
   try {
     const { page = 1, perPage = 10, tag, search } = req.query;
 
-    const filter = {};
-    if (tag) filter.tag = tag;
-    if (search) filter.$text = { $search: search };
+    let query = Note.find();
+
+    if (tag) {
+      query = query.where('tag').equals(tag);
+    }
+
+    if (search) {
+      query = query.where('$text').equals({ $search: search });
+    }
+
+    query = query.skip((page - 1) * perPage).limit(Number(perPage));
 
     const [notes, totalNotes] = await Promise.all([
-      Note.find(filter)
-        .skip((page - 1) * perPage)
-        .limit(Number(perPage)),
-      Note.countDocuments(filter),
+      query.exec(),
+      Note.countDocuments(query.getFilter()),
     ]);
 
     res.status(200).json({
@@ -44,7 +50,10 @@ export const createNote = async (req, res, next) => {
     const savedNote = await note.save();
     res.status(201).json(savedNote);
   } catch (err) {
-    next(createError(400, err.message));
+    if (err.name === 'ValidationError' || err.name === 'CastError') {
+      return next(createError(400, err.message));
+    }
+    next(err);
   }
 };
 
@@ -55,10 +64,15 @@ export const updateNote = async (req, res, next) => {
       req.body,
       { new: true, runValidators: true },
     );
+
     if (!updatedNote) throw createError(404, 'Note not found');
+
     res.status(200).json(updatedNote);
   } catch (err) {
-    next(createError(400, err.message));
+    if (err.name === 'ValidationError' || err.name === 'CastError') {
+      return next(createError(400, err.message));
+    }
+    next(err);
   }
 };
 
