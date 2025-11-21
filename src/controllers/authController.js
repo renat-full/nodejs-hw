@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import createHttpError from 'http-errors';
 import bcrypt from 'bcrypt';
 import { User } from '../models/user.js';
@@ -6,8 +8,12 @@ import { createSession, setSessionCookies } from '../services/auth.js';
 import jwt from 'jsonwebtoken';
 import { sendEmail } from '../utils/sendMail.js';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import handlebars from 'handlebars';
-import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const registerUser = async (req, res, next) => {
   try {
@@ -52,6 +58,10 @@ export const refreshUserSession = async (req, res, next) => {
   try {
     const { sessionId, refreshToken } = req.cookies;
 
+    if (!sessionId || !refreshToken) {
+      throw createHttpError(401, 'Missing session or refresh token');
+    }
+
     const session = await Session.findOne({ _id: sessionId, refreshToken });
     if (!session) throw createHttpError(401, 'Session not found');
 
@@ -86,38 +96,47 @@ export const logoutUser = async (req, res, next) => {
   }
 };
 
-dotenv.config();
-
 export const requestResetEmail = async (req, res, next) => {
-  console.log('requestResetEmail called');
   try {
     const { email } = req.body;
-    console.log('Request email:', email);
 
     const user = await User.findOne({ email });
 
-    if (!user)
+    if (!user) {
       return res
         .status(200)
         .json({ message: 'Password reset email sent successfully' });
+    }
 
     const token = jwt.sign(
-      { sub: user._id, email: user.email },
+      { sub: user._id.toString(), email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: '15m' },
     );
 
-    const template = fs.readFileSync(
-      'src/templates/reset-password-email.html',
-      'utf-8',
+    const templatePath = path.join(
+      __dirname,
+      '..',
+      'templates',
+      'reset-password-email.html',
     );
+    const template = fs.readFileSync(templatePath, 'utf-8');
     const compiledTemplate = handlebars.compile(template);
     const html = compiledTemplate({
       username: user.username,
       link: `${process.env.FRONTEND_DOMAIN}/reset-password?token=${token}`,
     });
 
-    await sendEmail({ to: user.email, subject: 'Password Reset', html });
+    try {
+      await sendEmail({ to: user.email, subject: 'Password Reset', html });
+    } catch (err) {
+      return next(
+        createHttpError(
+          500,
+          'Failed to send the email, please try again later.',
+        ),
+      );
+    }
 
     res.status(200).json({ message: 'Password reset email sent successfully' });
   } catch (err) {
@@ -139,7 +158,9 @@ export const resetPassword = async (req, res, next) => {
     const user = await User.findOne({ _id: payload.sub, email: payload.email });
     if (!user) throw createHttpError(404, 'User not found');
 
-    user.password = password;
+    const saltRounds = 10;
+    const hashed = await bcrypt.hash(password, saltRounds);
+    user.password = hashed;
     await user.save();
 
     res.status(200).json({ message: 'Password reset successfully' });

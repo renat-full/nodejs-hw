@@ -7,12 +7,14 @@ const sessionSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
-    accessToken: { type: String, required: true },
+    accessToken: { type: String, required: true, index: true },
     refreshToken: { type: String, required: true },
-    accessTokenValidUntil: { type: Date, required: true },
-    refreshTokenValidUntil: { type: Date, required: true },
+    accessTokenValidUntil: { type: Date, required: true, index: true },
+    refreshTokenValidUntil: { type: Date, required: true, index: true },
   },
   { timestamps: true },
 );
+
+sessionSchema.index({ refreshTokenValidUntil: 1 }, { expireAfterSeconds: 0 });
 
 export const Session = mongoose.model('Session', sessionSchema);
