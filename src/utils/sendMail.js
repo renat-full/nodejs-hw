@@ -4,7 +4,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const sendEmail = async ({ to, subject, html }) => {
+if (!process.env.SMTP_FROM) {
+  console.warn(
+    '⚠ WARNING: SMTP_FROM is not defined. Emails may fail without a valid sender address.',
+  );
+}
+
+export const sendEmail = async (options = {}) => {
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -16,12 +22,12 @@ export const sendEmail = async ({ to, subject, html }) => {
       },
     });
 
-    await transporter.sendMail({
+    const mailOptions = {
       from: process.env.SMTP_FROM,
-      to,
-      subject,
-      html,
-    });
+      ...options,
+    };
+
+    return await transporter.sendMail(mailOptions);
   } catch (err) {
     throw createHttpError(
       500,

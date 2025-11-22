@@ -22,7 +22,13 @@ export const registerUser = async (req, res, next) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) throw createHttpError(400, 'Email in use');
 
-    const user = await User.create({ email, password });
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+    });
 
     const session = await createSession(user._id);
     setSessionCookies(res, session);
